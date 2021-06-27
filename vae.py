@@ -79,7 +79,8 @@ def train_ae(autoencoder, data, epochs=20):
     opt = torch.optim.Adam(autoencoder.parameters())
     for epoch in range(epochs):
         print("epoch", epoch)
-        for x, y in data:
+        #for x, y in data:
+        for x in data:
             x = x.to(device)
             opt.zero_grad()
             x_hat = autoencoder(x)

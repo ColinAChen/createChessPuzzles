@@ -78,13 +78,16 @@ for x in train_dataloader:
 	break
 
 latent_dims = 2
-ae = vae.VariationalAutoencoder(latent_dims)
-ae = vae.train_vae(ae, train_dataloader, epochs=50)
+#ae = vae.VariationalAutoencoder(latent_dims)
+ae = vae.Autoencoder(latent_dims)
+ae = vae.train_ae(ae, train_dataloader, epochs=20)
 torch.save(ae, "saved_models/chess_ae.pkl")
+torch.save(train_dataloader, "saved_models/chess_data.pkl")
 vae.plot_latent(ae, train_dataloader)
 #ae = torch.load("saved_models/chess_ae.pkl")
 
 for x in train_dataloader:
+	print(x)
 	print(ae.encoder(x))
 	break
 
