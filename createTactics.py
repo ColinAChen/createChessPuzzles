@@ -1,33 +1,5 @@
 from util import *
-
-WHITE = 1
-BLACK = 0
-
-PAWN = 1
-KNIGHT = 2
-BISHOP = 3
-ROOK = 4
-QUEEN = 5
-KING = 6
-
-WHITE_PIECES = {
-	1: 'P',
-	2: 'N',
-	3: 'B',
-	4: 'R',
-	5: 'Q',
-	6: 'K'
-}
-BLACK_PIECES = {
-	1: 'p',
-	2: 'n',
-	3: 'b',
-	4: 'r',
-	5: 'q',
-	6: 'k'
-}
-random.seed(42069)
-
+from engine import *
 
 '''
 Rook skewers king to win material without recapturing the rook
@@ -48,7 +20,7 @@ x x 0 0 0 0 0 0 x x
 x x 0 0 0 0 0 0 x x
 
 '''
-def createRookSkewer():
+def createRookSkewer(visualize=False):
 	#board = np.zeros((8,8))
 	board = []
 	for i in range(8):
@@ -67,7 +39,7 @@ def createRookSkewer():
 		kingRow = random.randint(0,8)
 		kingCol = random.randint(0,8)
 
-	board[kingRow][kingCol] = BLACK_PIECES[KING]
+	board[kingRow][kingCol] = BLACK_PIECES_V[KING] if visualize else BLACK_PIECES_TENSOR[KING]
 	#print('king at: ', (kingRow, kingCol))
 	#print(board)
 	# choose a random piece aligned with the king on a random axis
@@ -96,7 +68,7 @@ def createRookSkewer():
 	#print('piece at: ', (pieceRow, pieceCol))
 
 	piecesToWin = [KNIGHT, BISHOP, ROOK, QUEEN]
-	board[pieceRow][pieceCol] = BLACK_PIECES[random.choice(piecesToWin)]
+	board[pieceRow][pieceCol] = BLACK_PIECES_V[random.choice(piecesToWin)] if visualize else BLACK_PIECES_TENSOR[random.choice(piecesToWin)]
 
 	# choose a random square to place the rook
 	# the rook must be on the opposite side of the piece from the king and cannot be capturable
@@ -127,11 +99,11 @@ def createRookSkewer():
 						rookCandidates.append((row, col))
 	#print('rook candidates are: ', rookCandidates)
 	rookRow, rookCol = random.choice(rookCandidates)
-	board[rookRow][rookCol] = WHITE_PIECES[ROOK]
+	board[rookRow][rookCol] = WHITE_PIECES_V[ROOK] if visualize else WHITE_PIECES_TENSOR[ROOK]
 	#print('rook at ', (rookRow, rookCol))
 	#print(board)
 	#print(boardToString(board))
-	return board
+	return board if visualize else torch.tensor(board)
 
 '''
 Create a knight for such that white forks the king and another piece to win material
@@ -141,176 +113,45 @@ Create a knight for such that white forks the king and another piece to win mate
 4. Choose a position for the white knight to start at remaining possible knight moves
 
 '''
-def createKnightKingFork():
+def createKnightKingFork(visualize=False):
 	# cannot fork in the corer because there are only two possible knight moves
 	# all other squares are valid
 	board = []
 	for i in range(8):
 		board.append([0] * 8)
 	# 1. Choose a final position for the white knight
-	noKnight = [(0,0), (0,8),
-				(8,0), (8,8)]
+	noKnight = [(0,0), (0,7),
+				(7,0), (7,7)]
 	knightRow = random.randint(0,7)
 	knightCol = random.randint(0,7)
 	while (knightRow, knightCol) in noKnight:
+	#while len(getLegalMoves(KNIGHT,(knightRow, knightCol)) < 3):
 		knightRow = random.randint(0,7)
 		knightCol = random.randint(0,7)
-	print('knight ends at: ', (knightRow, knightCol))
+	#print('knight ends at: ', (knightRow, knightCol))
 
 	# 2. Choose a position for the black king from possible knight moves
 	knightMoves = getLegalMoves(KNIGHT, (knightRow, knightCol))
-	print('knightMoves start at: ', knightMoves)
+	#print('knightMoves start at: ', knightMoves)
 	kingPos = kingRow, kingCol = random.choice(knightMoves)
 	# remove the king pos from the possible moves
 	knightMoves.remove(kingPos)
-	board[kingRow][kingCol] = BLACK_PIECES[KING]
-	print('king at: ', (kingRow, kingCol))
-	print('knightMoves: ', knightMoves)
+	board[kingRow][kingCol] = BLACK_PIECES_V[KING] if visualize else BLACK_PIECES_TENSOR[KING]
+	#print('king at: ', (kingRow, kingCol))
+	#print('knightMoves: ', knightMoves)
 	# 3. Choose a position for the black piece from remaining possible knight moves
 	piecePos = pieceRow, pieceCol = random.choice(knightMoves)
 	knightMoves.remove(piecePos)
-	board[pieceRow][pieceCol] = BLACK_PIECES[random.choice((ROOK, QUEEN))]
-	print('piece at: ', (pieceRow, pieceCol))
-	print('knightMoves: ', knightMoves)
+	board[pieceRow][pieceCol] = BLACK_PIECES_V[random.choice((ROOK, QUEEN))] if visualize else BLACK_PIECES_TENSOR[random.choice((ROOK, QUEEN))]
+	#print('piece at: ', (pieceRow, pieceCol))
+	#print('knightMoves: ', knightMoves)
 	#4. Choose a position for the white knight to start at remaining possible knight moves
 	knightRow, knightCol = random.choice(knightMoves)
-	board[knightRow][knightCol] = WHITE_PIECES[KNIGHT]
-	print('knight at: ', (knightRow, knightCol))
-	print(boardToString(board))
-	return board
-'''
-To verify
-The knight must be able to move to a position such that the king and piece are both attacked
-'''
-def verifyKnightKingFork(board):
-	# retrieve the positions of each piece
-	knightPos = (-1,-1)
-	kingPos = (-1,-1)
-	piecePos = (-1,-1)
-	for i,row in enumerate(board):
-		try:
-			knightIndex = row.index(WHITE_PIECES[KNIGHT])
-		except:
-			knightIndex = -1
-		try:
-			kingIndex = row.index(BLACK_PIECES[KING])
-		except:
-			kingIndex = -1
-		try:
-			rookIndex = row.index(BLACK_PIECES[ROOK])
-		except:
-			rookIndex = -1
-		try:
-			queenIndex = row.index(BLACK_PIECES[QUEEN])
-		except:
-			queenIndex = -1
-		if knightIndex != -1:
-			knightPos = (i, knightIndex)
-		if kingIndex != -1:
-			kingPos = (i, kingIndex)
-		if rookIndex != -1:
-			piecePos = (i, rookIndex)
-		if queenIndex != -1:
-			piecePos = (i, queenIndex)
-	if knightPos == (-1,-1) or kingPos == (-1,-1) or piecePos == (-1,-1):
-		return False
-	#print(knightPos, kingPos, piecePos)
-	# check each knight move
-	for move in getLegalMoves(KNIGHT, knightPos):
-		#print(move)
-		checkMoves = getKnightMoves(move)
-		if kingPos in checkMoves and piecePos in checkMoves:
-			return True
-	return False
-def getLegalMoves(piece, position, color=WHITE):
-	if piece == PAWN:
-		pass
-	elif piece == KNIGHT:
-		return getKnightMoves(position)
-	elif piece == BISHOP:
-		return getBishopMoves(position)
-	elif piece == ROOK:
-		return getRookMoves(position)
-	elif piece == QUEEN:
-		rookMoves = getRookMoves(position)
-		bishopMoves = getBishopMoves(position)
-		return rookMoves.extend(bishopMoves)
-	elif piece == KING:
-		return getKingMoves
-
-'''
-Get the positions the knight can theoretically move to on an empty board
-'''
-def getKnightMoves(position):
-	row, col = position
-	checkList = [(-2,-1), (-2,1),
-				 (-1,-2), (-1,2),
-				 (1,-2),  (1,2),
-				 (2,-1),  (2,1)]
-	retList = []
-	for check in checkList:
-		addRow, addCol = check
-		if (row + addRow >= 0 and row + addRow < 8
-			and col + addCol >= 0 and col + addCol < 8):
-			retList.append((row+addRow, col+addCol))
-	return retList
-
-'''
-Get the positions the bishop can theoretically move to on an empty board
-0 . . 8
-.
-.
-8
-'''
-def getBishopMoves(position):
-	row, col = position
-	moveList = []
-	# up left
-	while (row >= 0 and col < 8):
-		moveList.append((row-1, col+1))
-	# up right
-	while (row >= 0 and col >= 0):
-		moveList.append((row-1, col-1))
-	# down left
-	while (row < 8 and col < 8):
-		moveList.append((row+1, col+1))
-	# down right
-	while(row < 8 and col >= 0):
-		moveList.append((row+1, col-1))
-	return moveList
-
-def getRookMoves(position):
-	row, col = position
-	moveList = []
-	# up
-	while (row >= 0):
-		moveList.append((row-1, col))
-	# down
-	while (row < 8):
-		moveList.append((row+1, col))
-	# left
-	while (col >= 0):
-		moveList.append((row, col-1))
-	# right
-	while (col < 8):
-		moveList.append((row, col+1))
-	return moveList
-def getKingMoves(position):
-	row, col = position
-	moveList = []
-	checkList = [(-1, -1), (-1, 0), (-1, 1),
-				 ( 0, -1),          ( 0, 1),
-				 ( 1, -1), ( 1, 0), ( 1, 1)]
-	for check in checkList:
-		addRow, addCol = check
-		if (row + addRow >= 0 and row + addRow < 8
-			and col + addCol >= 0 and col + addCol < 8):
-			moveList.append((row+addRow, col+addCol))
-	return moveList
+	board[knightRow][knightCol] = WHITE_PIECES_V[KNIGHT] if visualize else WHITE_PIECES_TENSOR[KNIGHT]
+	#print('knight at: ', (knightRow, knightCol))
+	#print(boardToString(board))
+	return board if visualize else torch.tensor(board)
 #for i in range(10):
 
 #createRookSkewer()
 #print(verifyKnightKingFork(createKnightKingFork()))
-
-	
-
