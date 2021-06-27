@@ -14,8 +14,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 class Encoder(nn.Module):
     def __init__(self, latent_dims):
         super(Encoder, self).__init__()
-        self.linear1 = nn.Linear(784, 512)
-        self.linear2 = nn.Linear(512, latent_dims)
+        self.linear1 = nn.Linear(64, 32) #784, 512)
+        self.linear2 = nn.Linear(32, latent_dims) #512, latent_dims)
 
     def forward(self, x):
         x = torch.flatten(x, start_dim=1)
@@ -25,9 +25,9 @@ class Encoder(nn.Module):
 class VariationalEncoder(nn.Module):
     def __init__(self, latent_dims):
         super(VariationalEncoder, self).__init__()
-        self.linear1 = nn.Linear(784, 512)
-        self.linear2_1 = nn.Linear(512, latent_dims)
-        self.linear2_2 = nn.Linear(512, latent_dims)
+        self.linear1 = nn.Linear(64, 32)
+        self.linear2_1 = nn.Linear(32, latent_dims)
+        self.linear2_2 = nn.Linear(32, latent_dims)
 
         self.N = torch.distributions.Normal(0, 1)
         #self.N.loc = self.N.loc.cuda() # hack to get sampling on the GPU
@@ -46,13 +46,13 @@ class VariationalEncoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, latent_dims):
         super(Decoder, self).__init__()
-        self.linear1 = nn.Linear(latent_dims, 512)
-        self.linear2 = nn.Linear(512, 784)
+        self.linear1 = nn.Linear(latent_dims, 32)
+        self.linear2 = nn.Linear(32, 64)
 
     def forward(self, z):
         z = F.relu(self.linear1(z))
         z = torch.sigmoid(self.linear2(z))
-        return z.reshape((-1, 1, 28, 28))
+        return z.reshape((-1, 1, 8, 8))
 
 class Autoencoder(nn.Module):
     def __init__(self, latent_dims):
@@ -92,7 +92,8 @@ def train_vae(vae, data, epochs=20):
     opt = torch.optim.Adam(vae.parameters())
     for epoch in range(epochs):
         print("epoch", epoch)
-        for x, y in data:
+        #for x, y in data:
+        for x in data:
             x = x.to(device)
             opt.zero_grad()
             x_hat = vae(x)
@@ -102,10 +103,12 @@ def train_vae(vae, data, epochs=20):
     return vae
 
 def plot_latent(autoencoder, data, num_batches=100):
-    for i, (x, y) in enumerate(data):
+    #for i, (x, y) in enumerate(data):
+    for i, x in enumerate(data):
         z = autoencoder.encoder(x.to(device))
         z = z.to('cpu').detach().numpy()
-        plt.scatter(z[:, 0], z[:, 1], c=y, cmap='tab10')
+        #plt.scatter(z[:, 0], z[:, 1], c=y, cmap='tab10')
+        plt.scatter(z[:, 0], z[:, 1])
         if i > num_batches:
             plt.colorbar()
             break
@@ -145,10 +148,14 @@ if __name__ == "__main__":
         shuffle=True
     )
 
+    for i, j in data:
+        print(i.shape, j.shape)
+        break
+
     #autoencoder = torch.load(SAVE_DIR)
-    latent_dims = 2
-    vae = VariationalAutoencoder(latent_dims).to(device)
-    vae = train_vae(vae, data, epochs=5)
-    torch.save(vae, SAVE_DIR)
-    plot_latent(vae, data)
-    plot_reconstructed(vae, r0=(-3, 3), r1=(-3, 3))
+    #latent_dims = 2
+    #vae = VariationalAutoencoder(latent_dims).to(device)
+    #vae = train_vae(vae, data, epochs=1)
+    #torch.save(vae, SAVE_DIR)
+    #plot_latent(vae, data)
+    #plot_reconstructed(vae, r0=(-3, 3), r1=(-3, 3))
